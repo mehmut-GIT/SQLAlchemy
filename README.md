@@ -2,36 +2,37 @@
 
 A comprehensive guide to getting started with **SQLAlchemy**, the popular Python SQL toolkit and Object-Relational Mapping (ORM) library.
 
-## Table of Contents
+## Project Structure
 
-- [About SQLAlchemy](#about-sqlalchemy)
-- [Features](#features)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Database Connection](#database-connection)
-- [Project Structure](#project-structure)
-- [Usage Examples](#usage-examples)
-- [Supported Databases](#supported-databases)
-- [Resources](#resources)
-- [License](#license)
-
-## About SQLAlchemy
-
-SQLAlchemy is a mature, feature-rich SQL toolkit and object-relational mapper (ORM) for Python. It provides a full suite of well-known enterprise-level persistence patterns designed for efficient and high-performing database access.
-
-Whether you need a simple database connection or a complex ORM model, SQLAlchemy can handle it with flexibility and power.
+```
+SQLAlchemy/
+├── config.py                    # Database configuration and engine setup
+├── main.py                      # Main entry point
+├── models/
+│   ├── __init__.py
+│   └── user.py                  # User model definition
+├── database/
+│   ├── __init__.py
+│   └── crud_operations.py       # CRUD operations for User model
+├── utils/
+│   ├── __init__.py
+│   └── helpers.py               # Helper functions (hashing, demo data)
+├── examples/
+│   ├── __init__.py
+│   └── crud_examples.py         # Practical CRUD examples
+├── requirements.txt             # Python dependencies
+└── README.md                    # This file
+```
 
 ## Features
 
-✨ **Core Features:**
-- **SQL Expression Language**: Write database-agnostic SQL expressions
-- **Object-Relational Mapping (ORM)**: Map Python classes to database tables
-- **Connection Pooling**: Efficient database connection management
-- **Query API**: Intuitive and powerful query interface
-- **Support for Multiple Databases**: Works with PostgreSQL, MySQL, SQLite, Oracle, and more
-- **Type System**: Native Python type support for database columns
-- **Transaction Management**: Built-in support for ACID transactions
-- **Relationships**: Seamless one-to-one, one-to-many, and many-to-many relationships
+✨ **What's Included:**
+- **User Model**: Structured SQLAlchemy ORM model with proper columns and indexes
+- **CRUD Operations**: Complete Create, Read, Update, Delete operations in `UserCRUD` class
+- **Database Config**: Centralized configuration for database connections
+- **Helper Functions**: Utility functions for password hashing and demo data
+- **Practical Examples**: Real-world usage examples with detailed comments
+- **Session Management**: Proper database session handling
 
 ## Installation
 
@@ -39,7 +40,7 @@ Whether you need a simple database connection or a complex ORM model, SQLAlchemy
 - Python 3.7 or higher
 - pip (Python package manager)
 
-### Install SQLAlchemy
+### Install Dependencies
 
 ```bash
 pip install SQLAlchemy==2.0.29
@@ -51,182 +52,288 @@ Or install from `requirements.txt`:
 pip install -r requirements.txt
 ```
 
-### Install Database Driver (Optional)
-
-Depending on your database, you may need to install an additional driver:
-
-```bash
-# PostgreSQL
-pip install psycopg2-binary
-
-# MySQL
-pip install pymysql
-
-# SQLite (built-in, no driver needed)
-```
-
 ## Quick Start
 
-### Basic Connection Example
+### 1. Run CRUD Examples
+
+```bash
+python main.py
+```
+
+This will:
+- Create a SQLite database with the users table
+- Create sample users
+- Perform CRUD operations (Create, Read, Update, Delete)
+- Display all operations with output
+
+### 2. Use in Your Own Code
 
 ```python
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from config import init_db, get_session
+from database.crud_operations import UserCRUD
+from utils.helpers import hash_password
 
-# Create engine
-engine = create_engine('sqlite:///./test.db', echo=True)
+# Initialize database
+init_db()
 
-# Create session
-SessionLocal = sessionmaker(bind=engine)
-session = SessionLocal()
+# Get a session
+session = get_session()
+crud = UserCRUD(session)
 
-# Use the session for queries
-# ...
+# Create a user
+user = crud.create_user(
+    username='john_doe',
+    email='john@example.com',
+    password_hash=hash_password('password123'),
+    first_name='John'
+)
+
+# Get user
+user = crud.get_user_by_username('john_doe')
+print(user)
+
+# Update user
+crud.update_user(user.id, email='newemail@example.com')
+
+# Delete user
+crud.delete_user(user.id)
+
+session.close()
 ```
 
-For a complete example, see [basic_connection.py](basic_connection.py).
+## CRUD Operations Guide
 
-## Database Connection
+### CREATE Operations
 
-### Connection String Format
-
-SQLAlchemy uses a standardized connection string format:
-
-```
-dialect+driver://username:password@host:port/database
-```
-
-### Supported Databases
-
-#### SQLite (File-based, no server required)
 ```python
-DATABASE_URL = "sqlite:///./test.db"
+# Create single user
+user = crud.create_user(
+    username='user1',
+    email='user1@example.com',
+    password_hash=hash_password('password123'),
+    first_name='John',
+    last_name='Doe'
+)
+
+# Bulk create multiple users
+users_data = [
+    {'username': 'user1', 'email': 'user1@example.com', 'password_hash': '...'},
+    {'username': 'user2', 'email': 'user2@example.com', 'password_hash': '...'},
+]
+users = crud.bulk_create_users(users_data)
 ```
 
-#### PostgreSQL
+### READ Operations
+
 ```python
+# Get user by ID
+user = crud.get_user_by_id(1)
+
+# Get user by username
+user = crud.get_user_by_username('john_doe')
+
+# Get user by email
+user = crud.get_user_by_email('john@example.com')
+
+# Get all users (with pagination)
+users = crud.get_all_users(skip=0, limit=10)
+
+# Get active users
+active_users = crud.get_active_users(skip=0, limit=10)
+
+# Search users
+results = crud.search_users('john')
+
+# Count users
+total = crud.count_users()
+```
+
+### UPDATE Operations
+
+```python
+# Update user by ID
+user = crud.update_user(
+    user_id=1,
+    email='newemail@example.com',
+    first_name='Jane'
+)
+
+# Update user by username
+user = crud.update_user_by_username(
+    username='john_doe',
+    last_name='Smith'
+)
+
+# Deactivate user
+crud.deactivate_user(user_id=1)
+
+# Activate user
+crud.activate_user(user_id=1)
+```
+
+### DELETE Operations
+
+```python
+# Delete user by ID
+deleted = crud.delete_user(user_id=1)
+
+# Delete user by username
+deleted = crud.delete_user_by_username(username='john_doe')
+
+# Soft delete (deactivate)
+crud.deactivate_user(user_id=1)
+
+# Delete all users (USE WITH CAUTION)
+count = crud.delete_all_users()
+```
+
+## Database Models
+
+### User Model
+
+The User model includes the following columns:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | Integer | Primary key, auto-increment |
+| username | String | Unique username (indexed) |
+| email | String | Unique email address (indexed) |
+| password_hash | String | Hashed password |
+| first_name | String | User's first name (optional) |
+| last_name | String | User's last name (optional) |
+| is_active | Boolean | User status (default: True) |
+| created_at | DateTime | Creation timestamp |
+| updated_at | DateTime | Last update timestamp |
+
+**Indexes:**
+- `username` (single column)
+- `email` (single column)
+- `idx_username_email` (composite)
+
+## Configuration
+
+### Database Connection
+
+Edit `config.py` to change the database:
+
+```python
+# SQLite (default)
+DATABASE_URL = "sqlite:///./sqlalchemy_tutorial.db"
+
+# PostgreSQL
 DATABASE_URL = "postgresql://user:password@localhost:5432/dbname"
-```
 
-#### MySQL
-```python
+# MySQL
 DATABASE_URL = "mysql+pymysql://user:password@localhost:3306/dbname"
 ```
 
-#### Oracle
-```python
-DATABASE_URL = "oracle://user:password@localhost:1521/dbname"
-```
+### Disable SQL Echo
 
-### Creating an Engine
+To see SQL queries during execution:
 
 ```python
-from sqlalchemy import create_engine
-
 engine = create_engine(
-    "sqlite:///./test.db",
-    echo=True,  # Print SQL statements to console
-    pool_size=10,  # Connection pool size
-    max_overflow=20  # Maximum overflow connections
+    DATABASE_URL,
+    echo=True  # Set to True to see SQL statements
 )
 ```
 
-## Project Structure
+## Helper Functions
 
-```
-SQLAlchemy/
-├── README.md                 # This file
-├── requirements.txt          # Python dependencies
-├── basic_connection.py       # Basic connection example
-└── [Your additional files]   # Add more examples and modules here
-```
-
-## Usage Examples
-
-### Test Database Connection
-
-Run the basic connection test:
-
-```bash
-python basic_connection.py
-```
-
-Expected output:
-```
-✓ Database connection successful!
-✓ Test query result: (1,)
-```
-
-### Simple Query Example
+### Password Hashing
 
 ```python
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from utils.helpers import hash_password, verify_password
 
-engine = create_engine("sqlite:///./test.db")
-Session = sessionmaker(bind=engine)
-session = Session()
+# Hash a password
+hashed = hash_password('mypassword')
 
-# Execute a query
-result = session.execute(text("SELECT * FROM users"))
-for row in result:
-    print(row)
+# Verify password
+is_correct = verify_password('mypassword', hashed)
 ```
 
-### Define Models with ORM
+### Demo Data
 
 ```python
-from sqlalchemy import Column, Integer, String, DateTime
-from sqlalchemy.orm import declarative_base
-from datetime import datetime
+from utils.helpers import generate_demo_users
 
-Base = declarative_base()
-
-class User(Base):
-    __tablename__ = "users"
-    
-    id = Column(Integer, primary_key=True)
-    username = Column(String(50), unique=True, nullable=False)
-    email = Column(String(120), unique=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-# Create tables
-Base.metadata.create_all(engine)
+demo_users = generate_demo_users()
+# Returns a list of sample user dictionaries
 ```
 
-### CRUD Operations
+## Best Practices
+
+✅ **Do's:**
+- Always close sessions: `session.close()`
+- Use context managers for sessions (recommended)
+- Hash passwords before storing
+- Use proper error handling
+- Validate input data
+- Use transactions for data consistency
+- Implement pagination for large result sets
+
+❌ **Don'ts:**
+- Don't hardcode database credentials
+- Don't use `echo=True` in production
+- Don't forget to commit/rollback transactions
+- Don't store plain text passwords
+- Don't skip error handling
+
+## Examples
+
+### Example 1: Create and Read
 
 ```python
+from config import init_db, get_session
+from database.crud_operations import UserCRUD
+from utils.helpers import hash_password
+
+init_db()
+session = get_session()
+crud = UserCRUD(session)
+
 # Create
-new_user = User(username="john_doe", email="john@example.com")
-session.add(new_user)
-session.commit()
+user = crud.create_user(
+    username='alice',
+    email='alice@example.com',
+    password_hash=hash_password('secret'),
+    first_name='Alice'
+)
 
 # Read
-user = session.query(User).filter(User.username == "john_doe").first()
+user = crud.get_user_by_username('alice')
+print(f"User: {user.username} - {user.email}")
 
-# Update
-user.email = "newemail@example.com"
-session.commit()
-
-# Delete
-session.delete(user)
-session.commit()
+session.close()
 ```
 
-## Supported Databases
+### Example 2: Update and Delete
 
-SQLAlchemy supports a wide range of relational and non-relational databases:
+```python
+# Update
+crud.update_user(user.id, email='newemail@example.com')
 
-| Database | Dialect |
-|----------|---------|
-| SQLite | `sqlite` |
-| PostgreSQL | `postgresql` |
-| MySQL | `mysql` |
-| MariaDB | `mariadb` |
-| Oracle | `oracle` |
-| Microsoft SQL Server | `mssql` |
-| Firebird | `firebird` |
+# Get updated user
+updated_user = crud.get_user_by_id(user.id)
+print(f"New email: {updated_user.email}")
+
+# Delete
+crud.delete_user(user.id)
+print("User deleted")
+```
+
+### Example 3: Search and Pagination
+
+```python
+# Search
+results = crud.search_users('alice')
+for user in results:
+    print(user)
+
+# Pagination
+page1 = crud.get_all_users(skip=0, limit=10)
+page2 = crud.get_all_users(skip=10, limit=10)
+```
 
 ## Resources
 
@@ -237,40 +344,19 @@ SQLAlchemy supports a wide range of relational and non-relational databases:
 
 ## Common Issues and Solutions
 
-### Connection Issues
-
-**Problem**: `ModuleNotFoundError: No module named 'sqlalchemy'`
-- **Solution**: Install SQLAlchemy with `pip install SQLAlchemy`
-
-**Problem**: `sqlite3.OperationalError: unable to open database file`
-- **Solution**: Ensure the directory exists and you have write permissions
-
-### Database-Specific Issues
-
-**PostgreSQL**: Install `psycopg2-binary` for the PostgreSQL driver
+### ModuleNotFoundError: No module named 'sqlalchemy'
 ```bash
-pip install psycopg2-binary
+pip install SQLAlchemy
 ```
 
-**MySQL**: Install `pymysql` for the MySQL driver
-```bash
-pip install pymysql
-```
+### sqlite3.OperationalError: unable to open database file
+- Ensure the directory exists
+- Check write permissions
+- Verify the path is correct
 
-## Best Practices
-
-✅ **Do's:**
-- Use connection pooling for production applications
-- Close sessions explicitly or use context managers
-- Define models with clear relationships
-- Use transactions for data consistency
-- Implement proper error handling
-
-❌ **Don'ts:**
-- Don't hardcode database credentials; use environment variables
-- Don't use `echo=True` in production
-- Don't forget to close database connections
-- Don't skip proper exception handling
+### IntegrityError: Duplicate key value
+- Check for unique constraints (username, email)
+- Ensure data is valid before inserting
 
 ## Contributing
 
@@ -278,7 +364,7 @@ Contributions are welcome! Feel free to:
 - Report issues
 - Submit pull requests
 - Improve documentation
-- Add new examples
+- Add new features
 
 ## License
 
